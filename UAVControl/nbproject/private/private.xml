@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project-private xmlns="http://www.netbeans.org/ns/project-private/1">
+    <data xmlns="http://www.netbeans.org/ns/make-project-private/1">
+        <activeConfTypeElem>1</activeConfTypeElem>
+        <activeConfIndexElem>0</activeConfIndexElem>
+    </data>
+    <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
+    <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
+        <group>
+            <file>file:/home/mocap004/NetBeansProjects/UAVControl/ekf_coder/projectStateAndCov.cpp</file>
+            <file>file:/home/mocap004/NetBeansProjects/UAVControl/Helicopter.h</file>
+            <file>file:/home/mocap004/NetBeansProjects/UAVControl/Helicopter.cpp</file>
+            <file>file:/home/mocap004/NetBeansProjects/UAVControl/PoseEstimation.cpp</file>
+            <file>file:/home/mocap004/NetBeansProjects/UAVControl/UDP_socket.h</file>
+            <file>file:/home/mocap004/NetBeansProjects/UAVControl/UAV.cpp</file>
+            <file>file:/home/mocap004/NetBeansProjects/UAVControl/PoseEstimation.h</file>
+            <file>file:/home/mocap004/NetBeansProjects/UAVControl/main.cpp</file>
+            <file>file:/home/mocap004/NetBeansProjects/UAVControl/UDP_socket.cpp</file>
+            <file>file:/home/mocap004/NetBeansProjects/UAVControl/TCP_client.h</file>
+        </group>
+    </open-files>
+</project-private>
