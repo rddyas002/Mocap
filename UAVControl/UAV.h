@@ -24,6 +24,7 @@
 
 #define SERVER_HOST_PORT (2010)
 #define SYNC_PULSES         (100)
+#define MOCAP_MODE          "mocap.conf"
 
 class UAV {
 public:
@@ -45,6 +46,9 @@ public:
     int getConfiguration(FILE * file, Helicopter_info_struct * helicopter_info);
     void requestMocapData(void);
     void connectClients(void);
+    void connectClients4Mocap(void);
+    void setMocamDataReceived(int val);
+    void clearMocamDataReceived(void);
     unsigned int timeNow(void);
     void synchronizeClients(void);
     void TCP_Client_callback(TCP_client::callback_msg msg, int id);
@@ -61,6 +65,10 @@ private:
     Helicopter * helicopter[MAX_NUM_OF_HELICOPTERS];
     Helicopter_info_struct helicopter_info[MAX_NUM_OF_HELICOPTERS];
     int active_helicopters;
+    
+    // for mocap only
+    pthread_mutex_t uav_cam_mutex;
+    bool mc_dataFromCamReceived[NUM_OF_CAMERAS];
 };
 
 #endif	/* UAV_H */

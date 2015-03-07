@@ -2,8 +2,44 @@
 #include "UAV.h"
 
 UAV::UAV(const char * configuration_file) {
+    int i;
+    
     // Load configuration file
     FILE * file = fopen(configuration_file, "r");
+    
+    for (i = 0; i < NUM_OF_CAMERAS; i++){
+        tcp_client[i] = NULL;
+    }            
+    
+    for (i = 0; i < MAX_NUM_OF_HELICOPTERS; i++){
+        helicopter[i] = NULL;
+    }    
+    poseEstimation = NULL;    
+    
+    clearMocamDataReceived();
+    
+    // Get initial time that will be a reference for both helicopters and the systems t0
+    clock_gettime(CLOCK_MONOTONIC_RAW, &uav_t0);
+    uav_t0_us = (double)uav_t0.tv_sec*1e6 + (double)uav_t0.tv_nsec/1e3;    
+    
+    // MOCAP_MODE: captures blob information from the cameras only
+    // There is no estimation of pose and translation of some pre-defined object in the flying space
+    // Blobs in the scene are simply captured by the cameras at a fixed rate and
+    // stored to text.
+    if (strcmp(configuration_file, MOCAP_MODE) == 0){
+        cout << "Mocap Mode" << endl;
+        
+        // Make psuedo PoseEstimation object for virtualCamera struct reference
+        poseEstimation = new PoseEstimation(0, helicopter);
+        
+        // Connect to servers and send sync pulses
+        connectClients4Mocap();        
+        
+        // start automatic request operation
+        requestMocapData();
+        
+        return;
+    }
     
     if (file == NULL){
         cout << "Error opening configuration file" << endl;
@@ -20,22 +56,7 @@ UAV::UAV(const char * configuration_file) {
         cout << "Error reading configuration file" << endl;
         exit(-1);
     }
-    
-    int i;
-    
-    for (i = 0; i < MAX_NUM_OF_HELICOPTERS; i++){
-        helicopter[i] = NULL;
-    }    
-    poseEstimation = NULL;
-    
-    // Get initial time that will be a reference for both helicopters and the systems t0
-    clock_gettime(CLOCK_MONOTONIC_RAW, &uav_t0);
-    uav_t0_us = (double)uav_t0.tv_sec*1e6 + (double)uav_t0.tv_nsec/1e3;
-    
-    for (i = 0; i < NUM_OF_CAMERAS; i++){
-        tcp_client[i] = NULL;
-    }            
-    
+      
     // Allocate new helicopters
     for (i = 0; i < active_helicopters; i++){
         helicopter_info[i].start_time = uav_t0_us;
@@ -73,7 +94,6 @@ UAV::UAV(const char * configuration_file) {
             cout << "PoseEstimation timeout. Helicopters not detected in scene or residual too large" << endl;            
             cout << "Disconnecting from Mocap servers" << endl;            
             disconnectClients();
-            
     }
 }
 
@@ -194,6 +214,66 @@ void UAV::synchronizeClients(void){
         }     
     }
     cout << "Base station synchronisation pulses complete" << endl;
+}
+
+void UAV::clearMocamDataReceived(void){
+    for (int i = 0; i < NUM_OF_CAMERAS; i++){
+        mc_dataFromCamReceived[i] = false;
+    }    
+}
+
+void UAV::setMocamDataReceived(int val){     
+    int i = 0;
+    pthread_mutex_lock(&uav_cam_mutex);
+    if (mc_dataFromCamReceived[val - 1] == true)
+        std::cout << "scan error" << std::endl;
+    
+    mc_dataFromCamReceived[val - 1] = true;
+    
+    for (i = 0; i < NUM_OF_CAMERAS; i++){
+        if(!mc_dataFromCamReceived[i]){
+            pthread_mutex_unlock(&uav_cam_mutex);
+            return;
+        }
+    }
+   
+    pthread_mutex_unlock(&uav_cam_mutex);
+    clearMocamDataReceived();
+    // perform next request
+    requestMocapData();    
+}
+
+void UAV::connectClients4Mocap(void){
+    int i;
+    char * server_ip_addresses[NUM_OF_CAMERAS];
+    // extract char ip addresses
+    for (i = 0; i < NUM_OF_CAMERAS; i++){
+        server_ip_addresses[i] = (char*) malloc(20);
+    }
+    
+    sprintf(server_ip_addresses[0], "192.168.1.100");
+    sprintf(server_ip_addresses[1], "192.168.1.101");
+    sprintf(server_ip_addresses[2], "192.168.1.102");
+    sprintf(server_ip_addresses[3], "192.168.1.103");   
+    
+    for (i = 0; i < NUM_OF_CAMERAS; i++){
+        if (tcp_client[i] == NULL){
+            tcp_client[i] = new TCP_client(i+1,SERVER_HOST_PORT, server_ip_addresses[i], poseEstimation->getVirtualCamera(i), uav_t0_us);
+            if (!(tcp_client[i]->tryConnect())){
+                delete tcp_client[i];
+                tcp_client[i] = NULL;
+            }
+            else{
+                // Kill signal
+                tcp_callback_connection[i] = tcp_client[i]->getCallbackSignal()->connect(boost::bind(&UAV::TCP_Client_callback, this,_1,_2));
+                // Data received signal
+                data_received_connection[i] = tcp_client[i]->getDataReceivedSignal()->connect(boost::bind(&UAV::setMocamDataReceived, this,_1));
+            }
+        }
+    }
+    sleep(3);    
+    synchronizeClients();
+    sleep(1);    
 }
 
 void UAV::connectClients(void){

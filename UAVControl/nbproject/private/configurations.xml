@@ -32,8 +32,9 @@
           <runcommandpicklistitem>"${OUTPUT_PATH}" trex250se_H2.conf</runcommandpicklistitem>
           <runcommandpicklistitem>"${OUTPUT_PATH}" trex250se_x1.conf</runcommandpicklistitem>
           <runcommandpicklistitem>"${OUTPUT_PATH}" trex250se_x2.conf</runcommandpicklistitem>
+          <runcommandpicklistitem>"${OUTPUT_PATH}" mocap.conf</runcommandpicklistitem>
         </runcommandpicklist>
-        <runcommand>"${OUTPUT_PATH}" trex250se_x2.conf</runcommand>
+        <runcommand>"${OUTPUT_PATH}" mocap.conf</runcommand>
         <rundir></rundir>
         <buildfirst>true</buildfirst>
         <terminal-type>0</terminal-type>
