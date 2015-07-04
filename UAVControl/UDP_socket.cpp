@@ -103,6 +103,10 @@ void UDP_socket::sendPacket(char data[]){
     send(sockfd,data,strlen(data),0); 
 }
 
+void UDP_socket::sendPacketLen(char data[], char len){
+    send(sockfd,data,len,0); 
+}
+
 void UDP_socket::set_realTime_priority(void){   
     // get tid
     pthread_t this_thread = pthread_self();

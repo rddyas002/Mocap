@@ -42,7 +42,7 @@ Helicopter::Helicopter(Helicopter_info_struct h_info){
     
     memcpy(&gyro_raw2dps[0], &helicopter_info.gyro_raw2dps[0], sizeof(real_T)*3);
     memcpy(&accel1g[0], &helicopter_info.accelraw1g[0], sizeof(real_T)*3);
-    
+        
     initializeVariables();
     initialiseEKFvariables();
     initialiseLog();
@@ -205,6 +205,10 @@ void Helicopter::initialiseOffsetVariables(void){
     init_counter_sum = 0;            
 }
 
+uavType Helicopter::getType(void){
+    return helicopter_info.type;
+}
+
 double Helicopter::FPSCalc(void){
     pthread_mutex_lock(&dt_mutex);
     if (!fps_first_enter){
@@ -260,6 +264,10 @@ double Helicopter::deltaTime(void){
         pthread_mutex_unlock(&dt_mutex);
         return time_elaps;
     }
+}
+
+Helicopter_info_struct * Helicopter::getHelicopterInfo(void){
+    return &helicopter_info;
 }
 
 unsigned int Helicopter::timeNow(void){

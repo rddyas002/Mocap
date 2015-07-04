@@ -70,6 +70,7 @@ public:
     void quaternionRotate(const float q1[4], const float q2[4], float q[4]);
     void fillCamStruct(b_struct_T * tmp_z);
     bool lsqnon_Estimation(real_T init_x[7], const b_struct_T z[4], const real_T obj_pnts[9], real_T ret_x[7], real_T * resnorm);
+    void LSQEstimation(Helicopter * h);
     double FPSCalc(void);
     double deltaTime(void);
     double dtCalc(void);
@@ -119,6 +120,7 @@ public:
     m_Signal* getSignal() { return &correction_done; }
     
     pthread_mutex_t set_cam_mutex;
+    bool makeUDP(void);
 
 private:
     OpencvCamera * virtual_cam[NUM_OF_CAMERAS];
@@ -149,6 +151,8 @@ private:
     
     pe_state current_state;
     char log_buffer[512];
+    
+    UDP_socket * udp_lsq;
 };
 
 #endif	/* POSEESTIMATION_H */

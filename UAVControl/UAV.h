@@ -25,6 +25,7 @@
 #define SERVER_HOST_PORT (2010)
 #define SYNC_PULSES         (100)
 #define MOCAP_MODE          "mocap.conf"
+#define SCHWARZ_MODE        "schwarz.conf"
 
 class UAV {
 public:
@@ -39,7 +40,10 @@ public:
         GREEN_BLOB,
         BLUE_BLOB,
         GYRORAW2DEGREES,
-        ACCELRAW2G
+        ACCELRAW2G,
+        TYPE,
+        UDP_IP,
+        UDP_PORT
     };    
     typedef boost::signals2::connection signal_connection;
     UAV(const char * configuration_file);

@@ -70,6 +70,11 @@
 
 #define TRANSMIT_SLEEP      (50000)
 
+typedef enum uav_type{
+    YASHHELI, 
+    ARNOQUAD}
+uavType;
+
 typedef struct{
     // Identification
     int id;
@@ -88,6 +93,12 @@ typedef struct{
     
     real_T accelraw1g[3];
     real_T gyro_raw2dps[3];
+    
+    uavType type;
+    
+    // lsq data computer (UDP))
+    char ip_address_udp[64];
+    char ip_port_udp[10];    
 } Helicopter_info_struct;
 
 typedef struct{
@@ -156,6 +167,8 @@ public:
     virtual void transmitThread(void);
     void enableTransmitThread(bool en);
     void sendData(void);
+    uavType getType(void);
+    Helicopter_info_struct * getHelicopterInfo(void);
     
     // Filter equations
     float notchAccel(float accel_in, float input[3], float output[3], float dt);

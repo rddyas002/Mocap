@@ -54,6 +54,7 @@ public:
     void enableReceiveThread(bool en);
     unsigned int getLastReceiveTime(void);
     void sendPacket(char data[]);
+    void sendPacketLen(char data[], char len);
     void set_realTime_priority(void);
     unsigned int timeNow(void);
            

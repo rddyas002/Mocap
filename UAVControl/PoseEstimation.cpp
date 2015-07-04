@@ -7,6 +7,7 @@
 PoseEstimation::PoseEstimation(int num_active, Helicopter * helicopter_ref[MAX_NUM_OF_HELICOPTERS]){   
     int i = 0;
     
+    udp_lsq = NULL;
     active_helicopters = num_active;
     
     // make internal reference copy of helicopters
@@ -58,6 +59,19 @@ PoseEstimation::PoseEstimation(int num_active, Helicopter * helicopter_ref[MAX_N
         }
     }
     initialiseLog();
+    makeUDP();
+}
+
+bool PoseEstimation::makeUDP(void){
+    // only send to 1 pc, use helicopter 1 data as default
+    udp_lsq = new UDP_socket(10, helicopter[0]->getHelicopterInfo()->ip_address_udp,  helicopter[0]->getHelicopterInfo()->ip_port_udp, 0);
+
+    if (!udp_lsq->connect_socket()){
+        delete udp_lsq;
+        udp_lsq = NULL;
+        return false;
+    }
+    return true;
 }
 
 void PoseEstimation::initialiseLog(void){
@@ -166,21 +180,21 @@ bool PoseEstimation::lsqnon_Estimation(real_T init_x[7], const b_struct_T z[4], 
         memcpy(&init_x[0], &ret_x[0], sizeof(real_T)*7);
     }
     
-    if (*resnorm < RESNORM_MIN){
+    if ((double)*resnorm < RESNORM_MIN){
         return true;
     }
-    else{
-        real_T roll = 0, pitch = 0, yaw = 0;
-        real_T flip[4] = {0,1,0,0};
-        real_T ret_quat[4];
-        real_T quat[4] = {init_x[3],init_x[4],init_x[5],init_x[6]};        
-        quaternionRotation(&quat[0], &flip[0], &ret_quat[0]);
-        eulerAnglesFromQuaternion(&ret_quat[0], &roll, &pitch, &yaw);
-        printf("Res: %05.1f x: %04.0f y: %04.0f z: %04.0f r: %05.2f p: %05.2f y: %05.2f     \r", 
-                *resnorm, 
-                init_x[0]*1000, init_x[1]*1000, init_x[2]*1000,
-                roll, pitch, yaw);
-    }
+//    else{
+//        real_T roll = 0, pitch = 0, yaw = 0;
+//        real_T flip[4] = {0,1,0,0};
+//        real_T ret_quat[4];
+//        real_T quat[4] = {init_x[3],init_x[4],init_x[5],init_x[6]};        
+//        quaternionRotation(&quat[0], &flip[0], &ret_quat[0]);
+//        eulerAnglesFromQuaternion(&ret_quat[0], &roll, &pitch, &yaw);
+//        printf("Res: %05.1f x: %04.0f y: %04.0f z: %04.0f r: %05.2f p: %05.2f y: %05.2f     \r", 
+//                (double)(*resnorm), 
+//                init_x[0]*1000, init_x[1]*1000, init_x[2]*1000,
+//                roll, pitch, yaw);
+//    }
     
     return false;
 }
@@ -259,10 +273,52 @@ void PoseEstimation::setCamDataReceived(int val){
         }       
         if (helicopters_initialised){
             initialising = false;
-            current_state = PE_RUNNING;
-//            current_state = PE_LSQ_MODE;
-//            real_T x[7] = {0};
-//            real_T norm = estimateHeliPose(helicopter[0], &x[0]);
+            if (helicopter[0]->getType() == ARNOQUAD){
+                current_state = PE_LSQ_MODE;
+                LSQEstimation(helicopter[0]);
+                
+                char tx_data[30] = {0};
+                short int position_x = (short int)(*helicopter[0]->mocapPositionX()*1000);
+                short int position_y = (short int)(*helicopter[0]->mocapPositionY()*1000);
+                short int position_z = (short int)(*helicopter[0]->mocapPositionZ()*1000);
+                short int q0 = (short int)(*helicopter[0]->mocapq0()*32000);
+                short int q1 = (short int)(*helicopter[0]->mocapq1()*32000);
+                short int q2 = (short int)(*helicopter[0]->mocapq2()*32000);
+                short int q3 = (short int)(*helicopter[0]->mocapq3()*32000);
+                unsigned int time_now = helicopter[0]->timeNow();
+                tx_data[0] = '*';
+                tx_data[1] = '#';
+                tx_data[2] = (char)(position_x >> 8);
+                tx_data[3] = (char) (position_x & 0xFF);
+                tx_data[4] = (char)(position_y >> 8);
+                tx_data[5] = (char) (position_y & 0xFF);
+                tx_data[6] = (char)(position_z >> 8);
+                tx_data[7] = (char) (position_z & 0xFF);                
+                
+                tx_data[8] = (char)(q0 >> 8);
+                tx_data[9] = (char) (q0 & 0xFF);
+                tx_data[10] = (char)(q1 >> 8);
+                tx_data[11] = (char) (q1 & 0xFF);
+                tx_data[12] = (char)(q2 >> 8);
+                tx_data[13] = (char) (q2 & 0xFF);                
+                tx_data[14] = (char)(q3 >> 8);
+                tx_data[15] = (char) (q3 & 0xFF);                                
+                
+                tx_data[16] = (char)((time_now >> 24)& 0xFF);
+                tx_data[17] = (char)((time_now >> 16)& 0xFF);
+                tx_data[18] = (char)((time_now >> 8)& 0xFF);
+                tx_data[19] = (char) (time_now & 0xFF);                                
+                        
+                char checksum2 = 0;
+                for (int i = 0; i < 20; i++){
+                    checksum2 ^= tx_data[i];
+                }        
+                tx_data[20] = checksum2;
+                tx_data[21] = '\r';
+                udp_lsq->sendPacketLen(tx_data,21);                
+            }
+            else
+                current_state = PE_RUNNING;
         }
     }
         
@@ -336,6 +392,51 @@ real_T PoseEstimation::estimateHeliPose(Helicopter * helicopter, real_T pose_est
     cout << norm << " - " << pose_est2[0] << " " << pose_est2[1] << " " << pose_est2[2] << " " << roll << " " << pitch << " " << yaw << endl;          
     
     return norm;
+}
+
+void PoseEstimation::LSQEstimation(Helicopter * h){
+    // run nonlin est to compare results
+    real_T pose_est[7] = {0};
+    real_T norm = 0;
+    
+    b_struct_T z[4];
+    fillCamStruct(&z[0]);       
+    
+    real_T pose[7] = {0};
+    pose[0] = (double)*h->mocapPositionX();
+    pose[1] = (double)*h->mocapPositionY();
+    pose[2] = (double)*h->mocapPositionZ();
+    pose[3] = (double)*h->mocapq0();
+    pose[4] = (double)*h->mocapq1();
+    pose[5] = (double)*h->mocapq2();
+    pose[6] = (double)*h->mocapq3();    
+    
+    lsqnon_Estimation(pose, z, h->getObjectPoints(), &pose_est[0], &norm);
+    
+    //if residual is less than min then log/update as new data 
+//    if (norm < RESNORM_MIN){
+        *h->mocapPositionX() = (float)pose_est[0];
+        *h->mocapPositionY() = (float)pose_est[1];
+        *h->mocapPositionZ() = (float)pose_est[2];
+    
+        *h->mocapq0() = (float)pose_est[3];
+        *h->mocapq1() = (float)pose_est[4];
+        *h->mocapq2() = (float)pose_est[5];
+        *h->mocapq3() = (float)pose_est[6];
+    
+        // get euler angles from quaternion
+        real_T roll = 0, pitch = 0, yaw = 0;
+        real_T quat[4] = {-pose_est[4],pose_est[3],-pose_est[6],pose_est[5]};
+        eulerAnglesFromQuaternion(&quat[0], &roll, &pitch, &yaw);    
+        *h->mocapRoll() = roll*M_PI/180;
+        *h->mocapPitch() = pitch*M_PI/180;
+        *h->mocapYaw() = yaw*M_PI/180;
+        
+       // printf("%5.2f %5.2f %5.2f %5.2f %5.2f %5.2f %5.2f\r\n",pose_est[0],pose_est[1],pose_est[2],roll, pitch,yaw, norm);
+//    }
+//    else{
+//        //cout << "RENORM greater than " << RESNORM_MIN << endl;
+//    }
 }
 
 bool PoseEstimation::initialiseHelicopter(Helicopter * helicopter){
@@ -1091,6 +1192,10 @@ PoseEstimation::~PoseEstimation() {
             delete virtual_cam[i];
         }
     }    
+    if (udp_lsq != NULL){
+        delete udp_lsq;
+        udp_lsq = NULL;
+    }      
     pthread_mutex_destroy(&set_cam_mutex);
 }
 

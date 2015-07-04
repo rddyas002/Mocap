@@ -9,9 +9,12 @@
         <group>
             <file>file:/home/mocap004/NetBeansProjects/UAVControl/UAV.h</file>
             <file>file:/home/mocap004/NetBeansProjects/UAVControl/TCP_client.cpp</file>
+            <file>file:/home/mocap004/NetBeansProjects/UAVControl/Helicopter.h</file>
+            <file>file:/home/mocap004/NetBeansProjects/UAVControl/Helicopter.cpp</file>
             <file>file:/home/mocap004/NetBeansProjects/UAVControl/PoseEstimation.cpp</file>
             <file>file:/home/mocap004/NetBeansProjects/UAVControl/UAV.cpp</file>
             <file>file:/home/mocap004/NetBeansProjects/UAVControl/main.cpp</file>
+            <file>file:/home/mocap004/NetBeansProjects/UAVControl/UDP_socket.cpp</file>
         </group>
     </open-files>
 </project-private>

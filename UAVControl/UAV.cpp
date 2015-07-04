@@ -40,7 +40,7 @@ UAV::UAV(const char * configuration_file) {
         
         return;
     }
-    
+ 
     if (file == NULL){
         cout << "Error opening configuration file" << endl;
     }
@@ -115,7 +115,7 @@ int UAV::getConfiguration(FILE * file, Helicopter_info_struct * helicopter_info)
             cfline = strstr(&line[0], "=");
             cfline += 1;
             
-            if (i > ACCELRAW2G){
+            if (i > UDP_PORT){
                 // Another helicopter configuration exists
                 helicopter_info++;
                 i = ID;                
@@ -177,8 +177,24 @@ int UAV::getConfiguration(FILE * file, Helicopter_info_struct * helicopter_info)
                     helicopter_info->accelraw1g[0] = strtod(strtok(cfline, ","), NULL);
                     helicopter_info->accelraw1g[1] = strtod(strtok(NULL, ","), NULL);
                     helicopter_info->accelraw1g[2] = strtod(strtok(NULL, ","), NULL);
-                    num_of_helicopters++; // One configuration capture complete
-                    break;                   
+                    break;
+                case TYPE:
+                    char buffer[20];
+                    sprintf(&buffer[0], "%s", strtok(cfline, " \n\t"));
+                    if (strcmp(buffer, "QUAD0") == 0){
+                        helicopter_info->type = ARNOQUAD;
+                    }
+                    else{
+                        helicopter_info->type = YASHHELI;
+                    }                    
+                    num_of_helicopters++; // One configuration capture complete                    
+                    break;
+                case UDP_IP:
+                    sprintf(&helicopter_info->ip_address_udp[0], "%s", strtok(cfline, " \n\t"));
+                    break;
+                case UDP_PORT:
+                    sprintf(&helicopter_info->ip_port_udp[0], "%s", strtok(cfline, " \n\t"));
+                    break;                    
                 default:
                     cout << "CONFIG file error" << endl;
                     return -1;
